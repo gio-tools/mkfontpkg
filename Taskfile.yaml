@@ -1,0 +1,31 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  default:
+    - task: fmt
+    - go build -ldflags="-s -w"
+    - task: lint
+
+  install:
+    - task: fmt
+    - task: lint
+    - go install -ldflags="-s -w"
+
+  fmt:
+    - goimports -w -l .
+    - gofumpt -w -l .
+
+  lint:
+    - go vet ./...
+    - staticcheck ./...
+
+  get-tools:
+    prompt: >
+      You are about to install (or reinstall) the latest version of gofumpt, goimports, and staticcheck...
+      Do you wish to continue?
+    cmds:
+      - go install mvdan.cc/gofumpt@latest
+      - go install golang.org/x/tools/cmd/goimports@latest
+      - go install honnef.co/go/tools/cmd/staticcheck@latest

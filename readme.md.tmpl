@@ -1,0 +1,10 @@
+# {{ .DirName }}
+
+```sh
+go get {{ .ModPath }}
+```
+{{ with .LicenseFile }}
+Please see the [license file](./{{ . }}) for more info.
+{{- end }}
+
+This repo was built in part by using [`gio-tools/mkfontpkg`](https://github.com/gio-tools/mkfontpkg).
