@@ -217,6 +217,7 @@ func main() {
 
 	zipName := filepath.Base(*zipPath)
 	pkgName := strings.ToLower(baseNameStem(zipName))
+	pkgName = strings.Replace(pkgName, "-", "", -1)
 
 	fnt := fontPkgInfo{
 		PkgName: pkgName,
@@ -242,7 +243,10 @@ func main() {
 	}
 
 	for _, f := range z.File {
-		ext := filepath.Ext(f.Name)[1:]
+		ext := filepath.Ext(f.Name)
+		if ext != "" {
+			ext = ext[1:]
+		}
 		switch ext {
 		// The only text file of interest at this point would be a license file.
 		case "txt":
