@@ -16,8 +16,9 @@ import (
 )
 
 var (
-	zipPath = flag.String("zip", "", "path of the zip file containing the fonts")
 	verbose = flag.Bool("v", false, "print info on each step as it happens")
+	zipPath = flag.String("zip", "", "path of the zip file containing the fonts")
+	zipDir  = flag.String("zipdir", "", "only process files that match this path prefix within the zip")
 )
 
 func logInfo(format string, args ...any) {
@@ -91,7 +92,8 @@ type variantPkgInfo struct {
 }
 
 func createVariantPkg(fnt *fontPkgInfo, f *zip.File) error {
-	variantPkgName := baseNameStem(f.Name)
+	fname := f.FileInfo().Name()
+	variantPkgName := baseNameStem(fname)
 	variantPkgName = strings.ToLower(strings.Replace(variantPkgName, "-", "", -1))
 
 	variantDir := fnt.DirName + "/" + variantPkgName
@@ -105,11 +107,11 @@ func createVariantPkg(fnt *fontPkgInfo, f *zip.File) error {
 
 	inFile, err := f.Open()
 	if err != nil {
-		return fmt.Errorf("opening in-file '%s': %v", f.Name, err)
+		return fmt.Errorf("opening in-file '%s': %v", fname, err)
 	}
 	defer inFile.Close()
 
-	if err = copyToDisk(inFile, variantDir+"/"+f.Name); err != nil {
+	if err = copyToDisk(inFile, variantDir+"/"+fname); err != nil {
 		return fmt.Errorf("copying font variant file: %w", err)
 	}
 
@@ -124,8 +126,8 @@ func createVariantPkg(fnt *fontPkgInfo, f *zip.File) error {
 
 	variant := variantPkgInfo{
 		PkgName:      variantPkgName,
-		FontFileName: f.Name,
-		DataVarName:  strings.ToUpper(filepath.Ext(f.Name)[1:]),
+		FontFileName: fname,
+		DataVarName:  strings.ToUpper(filepath.Ext(fname)[1:]),
 	}
 
 	if err = variantPkgCodeTmpl.Execute(outGoFile, &variant); err != nil {
@@ -243,6 +245,9 @@ func main() {
 	}
 
 	for _, f := range z.File {
+		if !strings.HasPrefix(f.Name, *zipDir) {
+			continue
+		}
 		ext := filepath.Ext(f.Name)
 		if ext != "" {
 			ext = ext[1:]
