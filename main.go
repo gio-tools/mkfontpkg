@@ -16,9 +16,11 @@ import (
 )
 
 var (
-	verbose = flag.Bool("v", false, "print info on each step as it happens")
-	zipPath = flag.String("zip", "", "path of the zip file containing the fonts")
-	zipDir  = flag.String("zipdir", "", "only process files that match this path prefix within the zip")
+	licenseFile = flag.String("license", "", "path to the license file")
+	verbose     = flag.Bool("v", false, "print info on each step as it happens")
+	zipDir      = flag.String("zipdir", "", "only process files that match this path prefix within the zip")
+	zipList     = flag.Bool("zipls", false, "just list the font files in the given zip file")
+	zipPath     = flag.String("zip", "", "path of the zip file containing the fonts")
 )
 
 func logInfo(format string, args ...any) {
@@ -180,7 +182,7 @@ func copyLicenseFile(fnt *fontPkgInfo, f *zip.File) error {
 }
 
 func isLicenseFile(fname string) bool {
-	return strings.ToLower(baseNameStem(fname)) == "ofl"
+	return fname == *licenseFile || strings.ToLower(baseNameStem(fname)) == "ofl"
 }
 
 func writeReadme(fnt *fontPkgInfo) error {
@@ -236,6 +238,16 @@ func main() {
 	}
 	defer z.Close()
 
+	if *zipList {
+		for _, f := range z.File {
+			if !strings.HasPrefix(f.Name, *zipDir) {
+				continue
+			}
+			fmt.Println(f.Name)
+		}
+		return
+	}
+
 	// Make the parent output directory.
 	if err = os.Mkdir(fnt.DirName, 0o755); err != nil {
 		if os.IsExist(err) {
@@ -246,23 +258,21 @@ func main() {
 	}
 
 	for _, f := range z.File {
-		if !strings.HasPrefix(f.Name, *zipDir) {
-			continue
-		}
 		ext := filepath.Ext(f.Name)
 		if ext != "" {
 			ext = ext[1:]
 		}
-		switch ext {
+		switch {
 		// The only text file of interest at this point would be a license file.
-		case "txt":
-			if isLicenseFile(f.Name) {
-				if err = copyLicenseFile(&fnt, f); err != nil {
-					fatalf("copying license file: %v", err)
-				}
+		case isLicenseFile(f.Name):
+			if err = copyLicenseFile(&fnt, f); err != nil {
+				fatalf("copying license file: %v", err)
 			}
 		// Create a sub-package for each font variant.
-		case "otf", "ttf":
+		case ext == "otf", ext == "ttf":
+			if !strings.HasPrefix(f.Name, *zipDir) {
+				continue
+			}
 			err := createVariantPkg(&fnt, f)
 			if err != nil {
 				fatalf("creating font variant pkg: %v", err)
