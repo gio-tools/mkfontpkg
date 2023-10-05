@@ -204,9 +204,10 @@ func initGitAndStageDiff(fnt *fontPkgInfo) error {
 		if err := exec.Command("git", "init").Run(); err != nil {
 			return fmt.Errorf("running 'git init': %w", err)
 		}
-		/*if err := exec.Command("git", "commit", "-m", "initial commit").Run(); err != nil {
-			return fmt.Errorf("making git 'initial commit': %w", err)
-		}*/
+		origin := "git@github.com:gio-tools/font-" + fnt.PkgName + ".git"
+		if err := exec.Command("git", "remote", "add", "origin", origin).Run(); err != nil {
+			return fmt.Errorf("running 'git remote add origin': %w", err)
+		}
 	}
 	if err := exec.Command("git", "add", "-A").Run(); err != nil {
 		return fmt.Errorf("running 'git add -A': %w", err)
