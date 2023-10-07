@@ -3,7 +3,6 @@ package main
 import (
 	"archive/zip"
 	_ "embed"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -154,9 +153,11 @@ func writePkgRootFile(fnt *fontPkgInfo) error {
 }
 
 func writeModFile(fnt *fontPkgInfo) error {
-	if err := exec.Command("go", "mod", "init", fnt.ModPath).Run(); err != nil {
-		var ee *exec.ExitError
-		if !errors.As(err, &ee) {
+	if _, err := os.Stat("go.mod"); err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+		if err := exec.Command("go", "mod", "init", fnt.ModPath).Run(); err != nil {
 			return fmt.Errorf("running go mod init: %w", err)
 		}
 	}
